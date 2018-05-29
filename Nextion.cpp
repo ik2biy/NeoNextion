@@ -23,9 +23,11 @@ Nextion::Nextion(Stream &stream, bool flushSerialBeforeTx)
  */
 bool Nextion::init()
 {
+  while ( m_serialPort.read() != -1 ) ;
+
   sendCommand("");
 
-  sendCommand("bkcmd=1");
+  sendCommand("bkcmd=0");
   bool result1 = checkCommandComplete();
 
   sendCommand("page 0");
@@ -37,37 +39,61 @@ bool Nextion::init()
 /*!
  * \brief Polls for new messages and touch events.
  */
-void Nextion::poll()
-{
-  while (m_serialPort.available() > 0)
-  {
-    char c = m_serialPort.read();
+void Nextion::poll() {
+  static uint8_t buffer[8];
+  static char c;
 
-    if (c == NEX_RET_EVENT_TOUCH_HEAD)
-    {
+  // scan for start of message
+  while ((c = m_serialPort.read()) != -1 ) {
+    // start of message?
+    if (c == NEX_RET_EVENT_TOUCH_HEAD) {
       delay(10);
 
-      if (m_serialPort.available() >= 6)
-      {
-        static uint8_t buffer[8];
+      if (m_serialPort.available() >= 6) {
         buffer[0] = c;
 
         uint8_t i;
         for (i = 1; i < 7; i++)
           buffer[i] = m_serialPort.read();
         buffer[i] = 0x00;
-
-        if (buffer[4] == 0xFF && buffer[5] == 0xFF && buffer[6] == 0xFF)
-        {
+        // end of message correct?
+        if (buffer[4] == 0xFF && buffer[5] == 0xFF && buffer[6] == 0xFF) {
           ITouchableListItem *item = m_touchableList;
           while (item != NULL)
           {
             item->item->processEvent(buffer[1], buffer[2], buffer[3]);
             item = item->next;
           }
-        }
-      }
-    }
+        } else {
+          //Serial.println(F("poll:: EOM missing"));
+		}
+      } else {
+          //Serial.println(F("poll:: response too short"));
+	  }
+    } else if ( c == NEX_RET_CURRENT_PAGE_ID_HEAD ) {
+      //Serial.println(F("poll::NEX_RET_CURRENT_PAGE_ID_HEAD received"));
+      delay(10);
+
+      if (m_serialPort.available() >= 4) {
+        buffer[0] = c;
+
+        uint8_t i;
+        for (i = 1; i < 5; i++)
+          buffer[i] = m_serialPort.read();
+        buffer[i] = 0x00;
+        // end of message correct?
+        if (buffer[2] == 0xFF && buffer[3] == 0xFF && buffer[4] == 0xFF) {
+        } else {
+          //Serial.println(F("poll:: EOM missing"));
+		}
+      } else {	
+          //Serial.println(F("poll:: response too short"));
+	  }
+    } else {
+		//Serial.print(F("poll::start of message failed [")); Serial.print(c, HEX); Serial.println(F("]"));
+		delay(100);
+        while ( m_serialPort.read() != -1 ) ;
+	}
   }
 }
 
@@ -353,19 +379,8 @@ void Nextion::sendCommand(char *command)
  * \brief Checks if the last command was successful.
  * \return True if command was successful
  */
-bool Nextion::checkCommandComplete()
-{
-  bool ret = false;
-  uint8_t temp[4] = {0};
-
-  if (sizeof(temp) != m_serialPort.readBytes((char *)temp, sizeof(temp)))
-    ret = false;
-
-  if (temp[0] == NEX_RET_CMD_FINISHED && temp[1] == 0xFF && temp[2] == 0xFF &&
-      temp[3] == 0xFF)
-    ret = true;
-
-  return ret;
+bool Nextion::checkCommandComplete() {
+  return true;
 }
 
 /*!
