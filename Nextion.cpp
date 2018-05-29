@@ -65,13 +65,13 @@ void Nextion::poll() {
             item = item->next;
           }
         } else {
-          //Serial.println(F("poll:: EOM missing"));
+          Serial.println(F("poll:: EOM missing"));
 		}
       } else {
-          //Serial.println(F("poll:: response too short"));
+          Serial.println(F("poll:: response too short"));
 	  }
     } else if ( c == NEX_RET_CURRENT_PAGE_ID_HEAD ) {
-      //Serial.println(F("poll::NEX_RET_CURRENT_PAGE_ID_HEAD received"));
+      Serial.println(F("poll::NEX_RET_CURRENT_PAGE_ID_HEAD received"));
       delay(10);
 
       if (m_serialPort.available() >= 4) {
@@ -84,13 +84,13 @@ void Nextion::poll() {
         // end of message correct?
         if (buffer[2] == 0xFF && buffer[3] == 0xFF && buffer[4] == 0xFF) {
         } else {
-          //Serial.println(F("poll:: EOM missing"));
+          Serial.println(F("poll:: EOM missing"));
 		}
       } else {	
-          //Serial.println(F("poll:: response too short"));
+          Serial.println(F("poll:: response too short"));
 	  }
     } else {
-		//Serial.print(F("poll::start of message failed [")); Serial.print(c, HEX); Serial.println(F("]"));
+		Serial.print(F("poll::start of message failed [")); Serial.print(c, HEX); Serial.println(F("]"));
 		delay(100);
         while ( m_serialPort.read() != -1 ) ;
 	}
